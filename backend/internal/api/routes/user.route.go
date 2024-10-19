@@ -8,6 +8,6 @@ import (
 
 func SetupUserRoutes(router fiber.Router, db *gorm.DB) {
 	UserHandler := handler.UserHandler{DB: db}
-	router.Post("/signup", UserHandler.signupUser)
-	router.Post("/signin", UserHandler.signinUser)
+	router.Post("/signup", UserHandler.SignupUser)
+	router.Post("/signin", UserHandler.SigninUser)
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
+	"github.com/yagyagoel1/ticketnow/internal/api/routes"
 	errorhandler "github.com/yagyagoel1/ticketnow/pkg/errorHandler"
 	"github.com/yagyagoel1/ticketnow/pkg/storage"
 )
@@ -27,6 +28,6 @@ func main() {
 	db, err := storage.NewConnection(config)
 	errorhandler.Fatal(err)
 	app := fiber.New()
-	api.setupRoutes(app, db)
+	routes.SetupUserRoutes(app.Group("/api/user"), db)
 	log.Fatal(app.Listen(os.Getenv("PORT")))
 }

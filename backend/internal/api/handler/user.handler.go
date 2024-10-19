@@ -1,10 +1,17 @@
 package handler
 
 import (
+	"fmt"
+	"os"
+	"time"
+
 	"github.com/go-playground/validator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/yagyagoel1/ticketnow/internal/models"
+	"github.com/yagyagoel1/ticketnow/internal/utils"
 	"github.com/yagyagoel1/ticketnow/internal/validators"
 	errorhandler "github.com/yagyagoel1/ticketnow/pkg/errorHandler"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -38,5 +45,40 @@ func (r *UserHandler) SignupUser(c *fiber.Ctx) error {
 }
 
 func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
+	request := new(validators.SigninUser)
+
+	err := c.BodyParser(request)
+	if err != nil {
+		return errorhandler.Request(err, c, "There was some problem while parsing the data")
+
+	}
+	err = validate.Struct(request)
+	if err != nil {
+		return errorhandler.Request(err, c, "validation failed")
+	}
+	user := models.User{}
+	err = r.DB.Where("email=?", request.Email).First(&user).Error
+	if err != nil {
+		return errorhandler.Request(err, c, fmt.Sprintf("cannot find the user with the email %s", request.Email))
+
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
+	if err != nil {
+		return errorhandler.Request(err, c, "Password doesnt matched")
+	}
+	token, err := utils.GenerateToken(user)
+	if err != nil {
+		return errorhandler.Request(err, c, "there was some problem generating the token")
+	}
+	cookie := new(fiber.Cookie)
+	cookie.Name = os.Getenv("AUTH_TOKEN_NAME")
+	cookie.Value = token
+	cookie.Expires = time.Now().Add(24 * time.Hour)
+	c.Cookie(cookie)
+	c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "Login successful",
+		"user":    user,
+	})
 	return nil
 }
