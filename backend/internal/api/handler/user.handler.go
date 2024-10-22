@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
@@ -21,6 +22,7 @@ type UserHandler struct {
 	DB *gorm.DB
 }
 
+// todo add email based auth
 func (r *UserHandler) SignupUser(c *fiber.Ctx) error {
 	request := new(validators.CreateUserReq)
 	err := c.BodyParser(request)
@@ -62,6 +64,7 @@ func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
 		return errorhandler.Request(err, c, fmt.Sprintf("cannot find the user with the email %s", request.Email))
 
 	}
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password))
 	if err != nil {
 		return errorhandler.Request(err, c, "Password doesnt matched")
@@ -75,10 +78,31 @@ func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
 	cookie.Value = token
 	cookie.Expires = time.Now().Add(24 * time.Hour)
 	c.Cookie(cookie)
+	err = r.DB.Where("email=?", request.Email).Update("token", token).Error
+	if err != nil {
+		return errorhandler.Request(nil, c, "error updating token to db")
+	}
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "Login successful",
 		"user":    user,
 	})
+	return nil
+}
+
+func (r *UserHandler) GetProfile(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(models.User)
+	if !ok {
+		return errorhandler.Request(nil, c, "unauthorized")
+	}
+	c.Status(http.StatusOK).JSON(&fiber.Map{
+
+		"success": true,
+		"message": "user retreived Successfully",
+		"user": fiber.Map{
+			"id":    user.Id,
+			"name":  user.Name,
+			"email": user.Email,
+		}})
 	return nil
 }

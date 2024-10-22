@@ -13,7 +13,6 @@ type User struct {
 	Email       string    `json:"email" gorm:"not null"`
 	Password    string    `json:"password" gorm:"not null"`
 	Token       string    `json:"token" gorm:"not null"`
-	Phone       string    `json:"phone" gorm:"not null"`
 	Role        string    `json:"role" gorm:"not null"`
 	Verified    time.Time `json:"verified" gorm:"not null"`
 	CreateEvent time.Time `json:"CreateEvent" gorm:"not null"`
