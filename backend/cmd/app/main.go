@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	"github.com/yagyagoel1/ticketnow/internal/api/routes"
+	"github.com/yagyagoel1/ticketnow/internal/models"
 	errorhandler "github.com/yagyagoel1/ticketnow/pkg/errorHandler"
 	"github.com/yagyagoel1/ticketnow/pkg/storage"
 )
@@ -26,6 +27,7 @@ func main() {
 		DBName:   os.Getenv("DB_NAME"),
 	}
 	db, err := storage.NewConnection(config)
+	models.AutoMigrate(db)
 	errorhandler.Fatal(err)
 	app := fiber.New()
 	routes.SetupUserRoutes(app.Group("/api/user"), db)

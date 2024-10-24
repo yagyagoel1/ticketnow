@@ -34,7 +34,16 @@ func (r *UserHandler) SignupUser(c *fiber.Ctx) error {
 	if err != nil {
 		return errorhandler.Request(err, c, "validation failed")
 	}
-	err = r.DB.Create(request).Error
+	var count int64
+	err = r.DB.Model(&models.User{}).Where("email = ?", request.Email).Count(&count).Error
+
+	if err != nil {
+		return errorhandler.Request(nil, c, "there was some problem creating the record")
+	}
+	if count > 0 {
+		return errorhandler.Request(nil, c, "the user exist with this email already")
+	}
+	err = r.DB.Model(&models.User{}).Create(request).Error
 	if err != nil {
 		return errorhandler.Request(err, c, "there was some problem creating the record")
 	}
@@ -59,7 +68,7 @@ func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
 		return errorhandler.Request(err, c, "validation failed")
 	}
 	user := models.User{}
-	err = r.DB.Where("email=?", request.Email).First(&user).Error
+	err = r.DB.Model(&models.User{}).Where("email=?", request.Email).First(&user).Error
 	if err != nil {
 		return errorhandler.Request(err, c, fmt.Sprintf("cannot find the user with the email %s", request.Email))
 
@@ -78,7 +87,7 @@ func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
 	cookie.Value = token
 	cookie.Expires = time.Now().Add(24 * time.Hour)
 	c.Cookie(cookie)
-	err = r.DB.Where("email=?", request.Email).Update("token", token).Error
+	err = r.DB.Model(&models.User{}).Where("email=?", request.Email).Update("token", token).Error
 	if err != nil {
 		return errorhandler.Request(nil, c, "error updating token to db")
 	}
@@ -104,5 +113,54 @@ func (r *UserHandler) GetProfile(c *fiber.Ctx) error {
 			"name":  user.Name,
 			"email": user.Email,
 		}})
+	return nil
+}
+
+func (r *UserHandler) PutProfile(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(models.User)
+	if !ok {
+		return errorhandler.Request(nil, c, "unauthorized")
+	}
+	request := new(validators.UpdateProfile)
+	err := c.BodyParser(request)
+	if err != nil {
+		return errorhandler.Request(nil, c, "There was some problem while parsing the data")
+
+	}
+	err = validate.Struct(request)
+	if err != nil {
+		return errorhandler.Request(nil, c, "validation failed")
+	}
+	err = r.DB.Model(&models.User{}).Where("id=?", user.Id).Updates(map[string]interface{}{
+		"name": request.Name,
+	}).Error
+	if err != nil {
+		return errorhandler.Request(nil, c, "There was some problem while updating the record")
+	}
+	c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "the name of the user updated",
+		"data":    nil,
+	})
+	return nil
+}
+
+func (r *UserHandler) GetBookings(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(models.User)
+	if !ok {
+		return errorhandler.Request(nil, c, "unauthorized")
+	}
+	booking := models.Booking{}
+	err := r.DB.Model(&models.Booking{}).Where("userId=?", user.Id).Preload("Show", func(db *gorm.DB) *gorm.DB {
+		return db.Select("id,name,location,image")
+	}).First(&booking).Error
+	if err != nil {
+		return errorhandler.Request(nil, c, "there was some problem fetching the data")
+	}
+	c.Status(http.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "all thebooking details fetched successfully",
+		"data":    booking,
+	})
 	return nil
 }
