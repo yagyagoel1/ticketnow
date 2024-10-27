@@ -15,3 +15,8 @@ type SigninUser struct {
 type UpdateProfile struct {
 	Name string `json:"name" validate:"required"`
 }
+
+type PostBooking struct {
+	ShowId      uint                   `json:"showId" validate:"required"`
+	TicketTypes map[string]interface{} `json:"ticketTypes" validate:"required"`
+}
