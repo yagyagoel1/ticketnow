@@ -144,23 +144,3 @@ func (r *UserHandler) PutProfile(c *fiber.Ctx) error {
 	})
 	return nil
 }
-
-func (r *UserHandler) GetBookings(c *fiber.Ctx) error {
-	user, ok := c.Locals("user").(models.User)
-	if !ok {
-		return errorhandler.Request(nil, c, "unauthorized")
-	}
-	booking := models.Booking{}
-	err := r.DB.Model(&models.Booking{}).Where("userId=?", user.Id).Preload("Show", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id,name,location,image")
-	}).First(&booking).Error
-	if err != nil {
-		return errorhandler.Request(nil, c, "there was some problem fetching the data")
-	}
-	c.Status(http.StatusOK).JSON(fiber.Map{
-		"success": true,
-		"message": "all thebooking details fetched successfully",
-		"data":    booking,
-	})
-	return nil
-}

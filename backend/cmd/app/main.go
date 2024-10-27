@@ -31,5 +31,6 @@ func main() {
 	errorhandler.Fatal(err)
 	app := fiber.New()
 	routes.SetupUserRoutes(app.Group("/api/user"), db)
+	routes.SetupBookingRoutes(app.Group("/api/booking"), db)
 	log.Fatal(app.Listen(os.Getenv("PORT")))
 }
