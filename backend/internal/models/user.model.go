@@ -8,16 +8,17 @@ import (
 )
 
 type User struct {
-	Id          uint      `gorm:"primaryKey;not null;autoIncrement" json:"id"`
-	Name        string    `json:"name" gorm:"not null"`
-	Email       string    `json:"email" gorm:"not null"`
-	Password    string    `json:"password" gorm:"not null"`
-	Token       string    `json:"token" gorm:"not null"`
-	Role        string    `json:"role" gorm:"not null"`
-	Verified    time.Time `json:"verified" gorm:"not null"`
-	CreateEvent time.Time `json:"CreateEvent" gorm:"not null"`
-	Bookings    []Booking
-	Shows       []Show
+	Id           uint      `gorm:"primaryKey;not null;autoIncrement" json:"id"`
+	Name         string    `json:"name" gorm:"not null"`
+	Email        string    `json:"email" gorm:"not null;unique"`
+	Password     string    `json:"password" gorm:"not null"`
+	Token        string    `json:"token" gorm:"not null"`
+	Role         string    `json:"role" gorm:"not null"`
+	Verified     time.Time `json:"verified" gorm:"not null"`
+	CreateEvent  time.Time `json:"createEvent" gorm:"not null"`
+	Bookings     []Booking
+	Shows        []Show
+	BookingLocks []BookingLock
 }
 
 func (u *User) HashPassword(password string) (string, error) {
