@@ -7,10 +7,10 @@ type Show struct {
 	Name         string       `gorm:"not null" json:"name"`
 	Description  string       `gorm:"not null" json:"description"`
 	Image        string       `gorm:"not null" json:"image"`
-	TicketTypes  []TicketType `json:"ticketTypes"`
+	TicketTypes  []TicketType `json:"ticketTypes" gorm:"foreignKey:ShowId;constraint:OnDelete:CASCADE;"`
 	Bookings     []Booking
 	BookingLocks []BookingLock
-	User         User      `gorm:"foreignKey:UserId"`
+	User         User      `json:"-" gorm:"foreignKey:UserId;"`
 	UserId       uint      `json:"userId" gorm:"not null"`
 	Location     string    `gorm:"not null" json:"location"`
 	ShowTiming   time.Time `gorm:"not null" json:"showTiming"`
@@ -23,5 +23,5 @@ type TicketType struct {
 	Count       uint    `gorm:"not null" json:"count"`
 	ShowId      uint    `json:"showId" gorm:"not null"`
 	TicketCount []TicketCount
-	Show        Show `gorm:"foreignKey:ShowId"`
+	Show        Show `json:"-" gorm:"foreignKey:ShowId;constraint:OnDelete:CASCADE;"`
 }

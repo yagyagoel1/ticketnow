@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	"github.com/yagyagoel1/ticketnow/internal/api/routes"
 	"github.com/yagyagoel1/ticketnow/internal/models"
@@ -30,6 +31,11 @@ func main() {
 	models.AutoMigrate(db)
 	errorhandler.Fatal(err)
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept", // Specify allowed headers
+		AllowMethods: "GET, POST, PUT, DELETE",
+	}))
 	routes.SetupUserRoutes(app.Group("/api/user"), db)
 	routes.SetupBookingRoutes(app.Group("/api/booking"), db)
 	routes.SetupShowRoutes(app.Group("/api/show"), db)

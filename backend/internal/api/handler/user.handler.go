@@ -43,7 +43,12 @@ func (r *UserHandler) SignupUser(c *fiber.Ctx) error {
 	if count > 0 {
 		return errorhandler.Request(nil, c, "the user exist with this email already")
 	}
-	err = r.DB.Model(&models.User{}).Create(request).Error
+	user := &models.User{
+		Name:     request.Name,
+		Email:    request.Email,
+		Password: request.Password,
+	}
+	err = r.DB.Create(user).Error
 	if err != nil {
 		return errorhandler.Request(err, c, "there was some problem creating the record")
 	}
@@ -94,7 +99,7 @@ func (r *UserHandler) SigninUser(c *fiber.Ctx) error {
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "Login successful",
-		"user":    user,
+		"user":    nil,
 	})
 	return nil
 }

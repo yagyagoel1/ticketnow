@@ -39,5 +39,6 @@ func UploadToS3(fileHeader *multipart.FileHeader, showId string) (string, error)
 		return "", err
 	}
 	fileUrl := fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", bucketName, os.Getenv("REGION"), key)
+	fmt.Println("file url", fileUrl)
 	return fileUrl, nil
 }

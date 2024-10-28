@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"path/filepath"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -37,7 +37,7 @@ func (r *ShowHandler) GetShow(c *fiber.Ctx) error {
 	show := models.Show{}
 
 	err := r.DB.Model(&models.Show{}).Where("id=?", c.Params("id")).Preload("TicketTypes", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id,Name,Price,Count")
+		return db.Select("id,name,price,count")
 	}).Find(&show).Error
 	if err != nil {
 		return errorhandler.Request(nil, c, "error in fetching show")
@@ -62,12 +62,23 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 		return errorhandler.Request(nil, c, "unauthorized")
 	}
 
-	request := new(validators.CreateShow)
-
-	err := c.BodyParser(request)
+	form, err := c.MultipartForm()
 	if err != nil {
-		return errorhandler.Request(err, c, "error in parsing the request")
+		return errorhandler.Request(err, c, "error in parsing the form data")
 	}
+	request := new(validators.CreateShow)
+	request.Name = form.Value["name"][0]
+	request.Description = form.Value["description"][0]
+	request.Location = form.Value["location"][0]
+	request.ShowTiming, _ = time.Parse(time.RFC3339, form.Value["showTiming"][0])
+	jsonStr := form.Value["ticketTypes"][0]
+	var ticketTypes []validators.TicketType
+	err = json.Unmarshal([]byte(jsonStr), &ticketTypes)
+	if err != nil {
+		return errorhandler.Request(nil, c, "error in parsing the ticket types")
+	}
+	request.TicketTypes = ticketTypes
+
 	err = validate.Struct(request)
 	if err != nil {
 		return errorhandler.Request(err, c, "validation failed")
@@ -76,18 +87,13 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 	if err != nil {
 		return errorhandler.Request(err, c, "error in uploading image")
 	}
-	fileType := filepath.Ext(file.Filename)
-	if fileType != ".jpg" && fileType != ".png" && fileType != ".jpeg" {
-		return errorhandler.Request(nil, c, "only jpg, jpeg and png files are allowed")
-	}
-
 	show := models.Show{
 		Name:        request.Name,
 		Description: request.Description,
 		Location:    request.Location,
 		ShowTiming:  request.ShowTiming,
-		TicketTypes: []models.TicketType{},
 		UserId:      user.Id,
+		TicketTypes: make([]models.TicketType, 0, len(request.TicketTypes)),
 	}
 	for _, ticketType := range request.TicketTypes {
 		show.TicketTypes = append(show.TicketTypes, models.TicketType{
@@ -111,7 +117,6 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 		return errorhandler.Request(err, c, "error in updating image url")
 
 	}
-
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"success": true,
 		"message": "Show created successfully",
@@ -122,25 +127,37 @@ func (r *ShowHandler) DeleteShow(c *fiber.Ctx) error {
 	if c.Locals("user") == nil {
 		return errorhandler.Request(nil, c, "unauthorized")
 	}
-	user, ok := c.Locals("user").(models.User)
-	if !ok {
-		return errorhandler.Request(nil, c, "invalid user data")
-	}
 
-	if !user.IsAdmin || !user.CreateEvent {
-		return errorhandler.Request(nil, c, "unauthorized")
-	}
+	showID := c.Params("id")
+
+	// Begin transaction
+	tx := r.DB.Begin()
+
+	// Find the show
 	show := models.Show{}
-	err := r.DB.Model(&models.Show{}).Where("id=?", c.Params("id")).First(&show).Error
-	if err != nil {
+	if err := tx.First(&show, showID).Error; err != nil {
+		tx.Rollback()
 		return errorhandler.Request(err, c, "error in fetching show")
 	}
-	err = r.DB.Delete(&show).Error
-	if err != nil {
-		return errorhandler.Request(err, c, "error in deleting show")
+
+	// Delete associated ticket types first
+	if err := tx.Where("show_id = ?", showID).Delete(&models.TicketType{}).Error; err != nil {
+		tx.Rollback()
+		return errorhandler.Request(err, c, "error deleting ticket types")
 	}
+
+	// Then delete the show
+	if err := tx.Delete(&show).Error; err != nil {
+		tx.Rollback()
+		return errorhandler.Request(err, c, "error deleting show")
+	}
+
+	// Commit transaction
+	tx.Commit()
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
 		"message": "Show deleted successfully",
-		"data":    nil})
+		"data":    nil,
+	})
 }
