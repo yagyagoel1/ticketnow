@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yagyagoel1/ticketnow/internal/models"
+	"github.com/yagyagoel1/ticketnow/internal/utils"
 	"github.com/yagyagoel1/ticketnow/internal/validators"
 	errorhandler "github.com/yagyagoel1/ticketnow/pkg/errorHandler"
 	"gorm.io/gorm"
@@ -69,10 +72,18 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 	if err != nil {
 		return errorhandler.Request(err, c, "validation failed")
 	}
+	file, err := c.FormFile("image")
+	if err != nil {
+		return errorhandler.Request(err, c, "error in uploading image")
+	}
+	fileType := filepath.Ext(file.Filename)
+	if fileType != ".jpg" && fileType != ".png" && fileType != ".jpeg" {
+		return errorhandler.Request(nil, c, "only jpg, jpeg and png files are allowed")
+	}
+
 	show := models.Show{
 		Name:        request.Name,
 		Description: request.Description,
-		Image:       request.Image,
 		Location:    request.Location,
 		ShowTiming:  request.ShowTiming,
 		TicketTypes: []models.TicketType{},
@@ -90,6 +101,17 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 	if err != nil {
 		return errorhandler.Request(err, c, "error in creating the show")
 	}
+	showId := show.Id
+	fileUrl, err := utils.UploadToS3(file, strconv.FormatUint(uint64(showId), 10))
+	if err != nil {
+		return errorhandler.Request(err, c, "error in uploading image")
+	}
+	err = r.DB.Model(&models.Show{}).Where("id=?", showId).Update("image", fileUrl).Error
+	if err != nil {
+		return errorhandler.Request(err, c, "error in updating image url")
+
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 		"success": true,
 		"message": "Show created successfully",

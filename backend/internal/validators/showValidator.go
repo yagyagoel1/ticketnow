@@ -5,7 +5,6 @@ import "time"
 type CreateShow struct {
 	Name        string    `json:"name" validate:"required"`
 	Description string    `json:"description" validate:"required"`
-	Image       string    `json:"image" validate:"required"`
 	Location    string    `json:"location" validate:"required"`
 	ShowTiming  time.Time `json:"showTiming" validate:"required"`
 	TicketTypes []struct {
