@@ -182,7 +182,11 @@ func (r *BookingHandler) PostBooking(c *fiber.Ctx) error {
 	if err != nil {
 		return errorhandler.Request(err, c, "failed to create booking")
 	}
-
+	c.Status(http.StatusCreated).JSON(fiber.Map{
+		"success": true,
+		"message": "lock booking created successfully",
+		"data":    nil,
+	})
 	return nil
 
 }
