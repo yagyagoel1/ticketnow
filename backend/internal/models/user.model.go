@@ -1,21 +1,19 @@
 package models
 
 import (
-	"time"
-
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type User struct {
-	Id           uint      `gorm:"primaryKey;not null;autoIncrement" json:"id"`
-	Name         string    `json:"name" gorm:"not null"`
-	Email        string    `json:"email" gorm:"not null;unique"`
-	Password     string    `json:"password" gorm:"not null"`
-	Token        string    `json:"token" gorm:"not null"`
-	Role         string    `json:"role" gorm:"not null"`
-	Verified     time.Time `json:"verified" gorm:"not null"`
-	CreateEvent  time.Time `json:"createEvent" gorm:"not null"`
+	Id           uint   `gorm:"primaryKey;not null;autoIncrement" json:"id"`
+	Name         string `json:"name" gorm:"not null"`
+	Email        string `json:"email" gorm:"not null;unique"`
+	Password     string `json:"password" gorm:"not null"`
+	Token        string `json:"token" gorm:"not null"`
+	IsAdmin      bool   `json:"isAdmin" gorm:"not null;default:false"`
+	Verified     bool   `json:"verified" gorm:"not null;default:false"`
+	CreateEvent  bool   `json:"createEvent" gorm:"not null;default:false"`
 	Bookings     []Booking
 	Shows        []Show
 	BookingLocks []BookingLock

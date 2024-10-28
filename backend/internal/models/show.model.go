@@ -3,13 +3,15 @@ package models
 import "time"
 
 type Show struct {
-	Id           uint   `gorm:"primaryKey;autoIncrement" json:"id"`
-	Name         string `gorm:"not null" json:"name"`
-	Description  string `gorm:"not null" json:"description"`
-	Image        string `gorm:"not null" json:"image"`
-	TicketTypes  []TicketType
+	Id           uint         `gorm:"primaryKey;autoIncrement" json:"id"`
+	Name         string       `gorm:"not null" json:"name"`
+	Description  string       `gorm:"not null" json:"description"`
+	Image        string       `gorm:"not null" json:"image"`
+	TicketTypes  []TicketType `json:"ticketTypes"`
 	Bookings     []Booking
 	BookingLocks []BookingLock
+	User         User      `gorm:"foreignKey:UserId"`
+	UserId       uint      `json:"userId" gorm:"not null"`
 	Location     string    `gorm:"not null" json:"location"`
 	ShowTiming   time.Time `gorm:"not null" json:"showTiming"`
 }
