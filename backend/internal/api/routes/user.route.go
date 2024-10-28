@@ -13,4 +13,5 @@ func SetupUserRoutes(router fiber.Router, db *gorm.DB) {
 	router.Post("/signin", UserHandler.SigninUser)
 	router.Get("/profile", middleware.Auth(db), UserHandler.GetProfile)
 	router.Put("/profile", middleware.Auth(db), UserHandler.PutProfile)
+	router.Put("/profile/password", middleware.Auth(db), UserHandler.PutPassword)
 }

@@ -20,3 +20,8 @@ type PostBooking struct {
 	ShowId      uint                   `json:"showId" validate:"required"`
 	TicketTypes map[string]interface{} `json:"ticketTypes" validate:"required"`
 }
+
+type UpdatePassword struct {
+	OldPassword string `json:"oldPassword" validate:"required"`
+	NewPassword string `json:"newPassword" validate:"required"`
+}

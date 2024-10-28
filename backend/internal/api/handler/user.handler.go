@@ -144,3 +144,35 @@ func (r *UserHandler) PutProfile(c *fiber.Ctx) error {
 	})
 	return nil
 }
+func (r *UserHandler) PutPassword(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(models.User)
+	if !ok {
+		return errorhandler.Request(nil, c, "unauthorized")
+	}
+	request := new(validators.UpdatePassword)
+	err := c.BodyParser(request)
+	if err != nil {
+		return errorhandler.Request(nil, c, "There was some problem while parsing the data")
+
+	}
+	err = validate.Struct(request)
+	if err != nil {
+		return errorhandler.Request(nil, c, "validation failed")
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword))
+	if err != nil {
+		return errorhandler.Request(err, c, "Password doesnt matched")
+	}
+	err = r.DB.Model(&models.User{}).Where("id=?", user.Id).Updates(map[string]interface{}{
+		"password": request.NewPassword,
+	}).Error
+	if err != nil {
+		return errorhandler.Request(nil, c, "There was some problem while updating the record")
+	}
+	c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "the password of the user updated",
+		"data":    nil,
+	})
+	return nil
+}
