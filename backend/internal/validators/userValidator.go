@@ -16,8 +16,8 @@ type UpdateProfile struct {
 }
 
 type PostBooking struct {
-	ShowId      uint                   `json:"showId" validate:"required"`
-	TicketTypes map[string]interface{} `json:"ticketTypes" validate:"required"`
+	ShowId      uint           `json:"showId" validate:"required"`
+	TicketTypes map[string]int `json:"ticketTypes" validate:"required"`
 }
 
 type UpdatePassword struct {

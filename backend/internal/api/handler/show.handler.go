@@ -36,11 +36,9 @@ func (r *ShowHandler) GetAllShows(c *fiber.Ctx) error {
 func (r *ShowHandler) GetShow(c *fiber.Ctx) error {
 	show := models.Show{}
 
-	err := r.DB.Model(&models.Show{}).Where("id=?", c.Params("id")).Preload("TicketTypes", func(db *gorm.DB) *gorm.DB {
-		return db.Select("id,name,price,count")
-	}).Find(&show).Error
+	err := r.DB.Preload("TicketTypes").First(&show, c.Params("id")).Error
 	if err != nil {
-		return errorhandler.Request(nil, c, "error in fetching show")
+		return errorhandler.Request(err, c, "error in fetching show")
 	}
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
@@ -58,9 +56,9 @@ func (r *ShowHandler) PostShow(c *fiber.Ctx) error {
 		return errorhandler.Request(nil, c, "invalid user data")
 	}
 
-	if !user.IsAdmin || !user.CreateEvent {
-		return errorhandler.Request(nil, c, "unauthorized")
-	}
+	// if !user.IsAdmin || !user.CreateEvent {
+	// 	return errorhandler.Request(nil, c, "unauthorized")
+	// }
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -130,29 +128,24 @@ func (r *ShowHandler) DeleteShow(c *fiber.Ctx) error {
 
 	showID := c.Params("id")
 
-	// Begin transaction
 	tx := r.DB.Begin()
 
-	// Find the show
 	show := models.Show{}
 	if err := tx.First(&show, showID).Error; err != nil {
 		tx.Rollback()
 		return errorhandler.Request(err, c, "error in fetching show")
 	}
 
-	// Delete associated ticket types first
 	if err := tx.Where("show_id = ?", showID).Delete(&models.TicketType{}).Error; err != nil {
 		tx.Rollback()
 		return errorhandler.Request(err, c, "error deleting ticket types")
 	}
 
-	// Then delete the show
 	if err := tx.Delete(&show).Error; err != nil {
 		tx.Rollback()
 		return errorhandler.Request(err, c, "error deleting show")
 	}
 
-	// Commit transaction
 	tx.Commit()
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
